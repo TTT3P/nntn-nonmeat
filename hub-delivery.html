@@ -361,6 +361,7 @@ input:focus, select:focus { outline: none; border-color: var(--blue-light); }
     <button class="tab-btn active" id="tab-btn-delivery" onclick="switchTab('delivery')">📝 เตรียมใบ</button>
     <button class="tab-btn" id="tab-btn-drafts" onclick="switchTab('drafts')">⏳ รอส่ง</button>
     <button class="tab-btn" id="tab-btn-history" onclick="switchTab('history')">📋 ประวัติ</button>
+    <button class="tab-btn" id="tab-btn-adjust" onclick="switchTab('adjust')">🔧 ปรับแก้</button>
   </div>
 
   <!-- Draft banner -->
@@ -443,6 +444,17 @@ input:focus, select:focus { outline: none; border-color: var(--blue-light); }
     </div>
 
   </div><!-- end tab-history -->
+
+  <!-- ════ Tab: ปรับแก้ (Adjust) ════ -->
+  <div class="tab-pane" id="tab-adjust">
+    <div class="card">
+      <div class="card-title">🔧 ปรับแก้ใบนำส่ง</div>
+      <div class="info-banner no-print" style="background:#FFF3E0;border-color:#FFB74D;margin-bottom:12px">
+        ⏰ แก้ไขได้เฉพาะบิลที่ส่งภายใน 24 ชั่วโมง — เลือกบิล แล้วกดปุ่มที่ต้องการ
+      </div>
+      <div id="adjust-list"><div class="loading">แตะแท็บ ปรับแก้ เพื่อโหลดข้อมูล</div></div>
+    </div>
+  </div><!-- end tab-adjust -->
 
 </div>
 
@@ -1020,6 +1032,7 @@ function switchTab(tab) {
   document.getElementById(`tab-btn-${tab}`).classList.add('active')
   if (tab === 'history') loadHistory()
   if (tab === 'drafts') loadDrafts()
+  if (tab === 'adjust') loadAdjust()
 }
 
 // ─── Drafts ───────────────────────────────────────────────────────────────────
@@ -1707,6 +1720,241 @@ function printHistBill(i) {
   if (!w) { alert('ไม่สามารถเปิดหน้าต่างใหม่ได้ — กรุณาอนุญาต popup'); return }
   w.document.write(html)
   w.document.close()
+}
+
+// ─── Adjust Tab ──────────────────────────────────────────────────────────────
+let adjustData = []
+
+async function loadAdjust() {
+  const el = document.getElementById('adjust-list')
+  el.innerHTML = '<div class="loading">กำลังโหลดบิลที่ปรับแก้ได้...</div>'
+  try {
+    const tok = window.__nntnCurrentToken || localStorage.getItem('nntn_sb_token') || KEY
+    const SH = { ...H, Authorization: 'Bearer ' + tok, 'Content-Profile': 'stock', 'Accept-Profile': 'stock' }
+    const cutoff = new Date(Date.now() - 24*60*60*1000).toISOString()
+    const res = await fetch(
+      `${SB}/rest/v1/deliveries?select=id,bill_no,branch,date,channel,created_at,created_by,delivery_lines(id,catch_weight_id,item_id,qty,weight_g,note)&created_at=gte.${cutoff}&order=created_at.desc`,
+      { headers: SH }
+    )
+    const deliveries = await res.json()
+    if (!Array.isArray(deliveries) || !deliveries.length) {
+      el.innerHTML = '<div class="hist-empty">ไม่มีบิลที่ปรับแก้ได้ (ภายใน 24 ชม.)</div>'
+      return
+    }
+
+    // created_by guard
+    const me = window.nntnCurrentUser || null
+    const allowed = deliveries.filter(d => !d.created_by || d.created_by === me)
+    if (!allowed.length) {
+      el.innerHTML = '<div class="hist-empty">ไม่มีบิลที่คุณมีสิทธิ์ปรับแก้</div>'
+      return
+    }
+
+    // Resolve item names
+    allowed.forEach(d => {
+      (d.delivery_lines || []).forEach(l => {
+        const it = window._itemsById?.[l.item_id]
+        if (it) l.items = { sku: it.sku, name: it.name, unit: it.unit }
+      })
+    })
+
+    // Fetch catch_weight status for reverse detection
+    const cwIds = Array.from(new Set(
+      allowed.flatMap(d => (d.delivery_lines||[]).map(l => l.catch_weight_id).filter(Boolean))
+    ))
+    const cwStatus = {}
+    if (cwIds.length) {
+      const chunks = []
+      for (let i = 0; i < cwIds.length; i += 200) chunks.push(cwIds.slice(i, i+200))
+      for (const chunk of chunks) {
+        const cwRes = await fetch(
+          `${SB}/rest/v1/catch_weight?id=in.(${chunk.join(',')})&select=id,status,bag_no,weight_g`,
+          { headers: { ...H, Authorization: 'Bearer ' + tok } }
+        )
+        if (cwRes.ok) (await cwRes.json()).forEach(r => { cwStatus[r.id] = r })
+      }
+    }
+
+    adjustData = allowed.map(d => ({ ...d, cwStatus }))
+    renderAdjust(adjustData, cwStatus)
+  } catch (e) {
+    el.innerHTML = `<div class="warn-banner">❌ โหลดไม่ได้: ${e.message}</div>`
+  }
+}
+
+function renderAdjust(deliveries, cwStatus) {
+  const el = document.getElementById('adjust-list')
+  el.innerHTML = deliveries.map((d, di) => {
+    const lines = d.delivery_lines || []
+    const meatLines = lines.filter(l => l.catch_weight_id)
+    const nmLines = lines.filter(l => !l.catch_weight_id && l.item_id)
+
+    const meatHtml = meatLines.map(l => {
+      const cw = cwStatus[l.catch_weight_id] || {}
+      const name = l.items?.name || '?'
+      const kg = (l.weight_g || 0) / 1000
+      const isReversed = cw.status === '✅ In Stock'
+      const statusBadge = isReversed
+        ? '<span style="background:#E8F5E9;color:#2E7D32;border-radius:4px;padding:1px 6px;font-size:.7rem;margin-left:4px">คืนแล้ว</span>'
+        : '<span style="background:#FFF8E1;color:#F57F17;border-radius:4px;padding:1px 6px;font-size:.7rem;margin-left:4px">ส่งแล้ว</span>'
+      const actions = isReversed ? '' : `
+        <button class="btn btn-sm" onclick="event.stopPropagation();adjustReverse(${di},${l.catch_weight_id})"
+                style="background:#FFEBEE;color:#C62828;border:1px solid #EF9A9A;font-size:.72rem;padding:2px 8px"
+                title="คืนเข้าสต๊อก">🗑️ คืน</button>
+        <button class="btn btn-sm" onclick="event.stopPropagation();adjustSwap(${di},${l.catch_weight_id},'${escHtml(l.items?.name||'')}')"
+                style="background:#E3F2FD;color:#1565C0;border:1px solid #90CAF9;font-size:.72rem;padding:2px 8px"
+                title="สลับถุง">🔄 สลับ</button>`
+      return `<div style="font-size:.82rem;padding:6px 8px;border-bottom:1px solid #f0f0f0;display:flex;justify-content:space-between;align-items:center;background:${isReversed?'#FAFAFA':'#FFF8E1'}">
+        <span style="${isReversed?'opacity:.5;text-decoration:line-through':''}">🥩 ${escHtml(name)} <span style="color:var(--muted)">#${cw.bag_no||'?'} · ${kg.toFixed(3)}กก.</span>${statusBadge}</span>
+        <span style="display:flex;gap:4px">${actions}</span>
+      </div>`
+    }).join('')
+
+    const nmHtml = nmLines.map(l => {
+      return `<div style="font-size:.82rem;padding:4px 8px;border-bottom:1px solid #f5f5f5;display:flex;justify-content:space-between">
+        <span>${escHtml(l.items?.name || '?')}</span>
+        <span style="color:var(--muted)">${l.qty} ${escHtml(l.items?.unit||'')}</span>
+      </div>`
+    }).join('')
+
+    const ageMin = Math.round((Date.now() - new Date(d.created_at).getTime()) / 60000)
+    const ageStr = ageMin < 60 ? `${ageMin} นาทีที่แล้ว` : `${Math.round(ageMin/60)} ชม.ที่แล้ว`
+
+    return `<div style="margin-bottom:12px;border:1px solid var(--border);border-radius:10px;overflow:hidden">
+      <div style="padding:12px 14px;background:#fafafa;display:flex;justify-content:space-between;align-items:center;cursor:pointer"
+           onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'block':'none'">
+        <div>
+          <span style="font-weight:700">${escHtml(d.bill_no||'?')}</span>
+          <span style="font-size:.8rem;color:var(--muted);margin-left:8px">${escHtml(d.branch)} · ${fmtDate(d.date)} · ${ageStr}</span>
+        </div>
+        <div style="display:flex;gap:6px;align-items:center">
+          <button class="btn btn-sm" onclick="event.stopPropagation();adjustAddBag(${di})"
+                  style="background:#E8F5E9;color:#2E7D32;border:1px solid #A5D6A7;font-size:.72rem;padding:2px 10px"
+                  title="เพิ่มถุงเข้าบิลนี้">➕ เพิ่มถุง</button>
+          <span>▼</span>
+        </div>
+      </div>
+      <div style="display:none">${meatHtml}${nmHtml || '<div style="font-size:.82rem;padding:6px 8px;color:var(--muted)">ไม่มีรายการ non-meat</div>'}</div>
+    </div>`
+  }).join('')
+}
+
+async function callAdjustRpc(rpcName, params) {
+  const tok = window.__nntnCurrentToken || localStorage.getItem('nntn_sb_token') || KEY
+  const res = await fetch(`${SB}/rest/v1/rpc/${rpcName}`, {
+    method: 'POST',
+    headers: { ...H, Authorization: 'Bearer ' + tok, 'Content-Type': 'application/json' },
+    body: JSON.stringify(params)
+  })
+  const body = await res.json().catch(() => null)
+  if (!res.ok) {
+    const msg = body?.message || body?.details || JSON.stringify(body)
+    throw new Error(msg)
+  }
+  return body
+}
+
+async function adjustReverse(di, cwId) {
+  const reason = prompt('เหตุผลที่คืนถุง (≥ 10 ตัวอักษร):')
+  if (!reason) return
+  if (reason.length < 10) return alert('❌ เหตุผลต้องมีอย่างน้อย 10 ตัวอักษร')
+  if (!confirm(`ยืนยันคืนถุง #${cwId} เข้าสต๊อก?\n\nเหตุผล: ${reason}`)) return
+  try {
+    const actor = window.nntnCurrentUser || 'unknown'
+    const r = await callAdjustRpc('rpc_delivery_reverse', { p_actor: actor, p_cw_id: cwId, p_reason: reason })
+    alert(`✅ คืนถุงสำเร็จ (sm #${r.sm_id})`)
+    _logSubmit('adjust_reverse', 'success', { cw_id: cwId, reason }, { ref_id: cwId.toString() })
+    loadAdjust()
+  } catch (e) {
+    alert(`❌ คืนไม่ได้: ${e.message}`)
+    _logSubmit('adjust_reverse', 'error', { cw_id: cwId, reason }, { error_msg: e.message })
+  }
+}
+
+async function adjustSwap(di, oldCwId, itemName) {
+  const d = adjustData[di]
+  if (!d) return
+  try {
+    const tok = window.__nntnCurrentToken || localStorage.getItem('nntn_sb_token') || KEY
+    const itemId = d.delivery_lines.find(l => l.catch_weight_id === oldCwId)?.item_id
+    const cwRes = await fetch(
+      `${SB}/rest/v1/catch_weight?status=eq.✅ In Stock${itemId ? '&item_id=eq.' + itemId : ''}&select=id,bag_no,weight_g,item_id&order=bag_no&limit=50`,
+      { headers: { ...H, Authorization: 'Bearer ' + tok } }
+    )
+    const available = await cwRes.json()
+    if (!available?.length) return alert('❌ ไม่มีถุงว่างใน stock สำหรับรายการนี้')
+
+    const opts = available.map(b => `#${b.bag_no} (${(b.weight_g/1000).toFixed(3)}กก.) [id:${b.id}]`).join('\n')
+    const pick = prompt(`สลับถุง #${oldCwId} (${itemName})\n\nเลือกถุงใหม่ — พิมพ์เลข id:\n\n${opts}`)
+    if (!pick) return
+    const newCwId = parseInt(pick.replace(/[^\d]/g, ''), 10)
+    if (!newCwId || !available.find(b => b.id === newCwId)) return alert('❌ id ไม่ถูกต้อง — ต้องเป็นตัวเลขจากรายการ')
+
+    const reason = prompt('เหตุผลที่สลับ (≥ 10 ตัวอักษร):')
+    if (!reason) return
+    if (reason.length < 10) return alert('❌ เหตุผลต้องมีอย่างน้อย 10 ตัวอักษร')
+
+    const oldBag = d.cwStatus[oldCwId]
+    const newBag = available.find(b => b.id === newCwId)
+    if (!confirm(`ยืนยันสลับ?\n\nออก: #${oldBag?.bag_no||oldCwId} → กลับเข้าสต๊อก\nเข้า: #${newBag.bag_no} (${(newBag.weight_g/1000).toFixed(3)}กก.) → ส่งออก\n\nเหตุผล: ${reason}`)) return
+
+    const actor = window.nntnCurrentUser || 'unknown'
+    const r = await callAdjustRpc('rpc_delivery_swap_bag', { p_actor: actor, p_old_cw_id: oldCwId, p_new_cw_id: newCwId, p_reason: reason })
+    alert(`✅ สลับสำเร็จ\n\nถุงเก่า #${oldCwId} → In Stock (sm #${r.sm_reverse_id})\nถุงใหม่ #${newCwId} → Delivered (sm #${r.sm_deliver_id})`)
+    _logSubmit('adjust_swap', 'success', { old_cw_id: oldCwId, new_cw_id: newCwId, reason })
+    loadAdjust()
+  } catch (e) {
+    alert(`❌ สลับไม่ได้: ${e.message}`)
+    _logSubmit('adjust_swap', 'error', { old_cw_id: oldCwId, reason: '' }, { error_msg: e.message })
+  }
+}
+
+async function adjustAddBag(di) {
+  const d = adjustData[di]
+  if (!d) return
+  try {
+    const tok = window.__nntnCurrentToken || localStorage.getItem('nntn_sb_token') || KEY
+    const cwRes = await fetch(
+      `${SB}/rest/v1/catch_weight?status=eq.✅ In Stock&select=id,bag_no,weight_g,item_id&order=item_id,bag_no&limit=100`,
+      { headers: { ...H, Authorization: 'Bearer ' + tok } }
+    )
+    const available = await cwRes.json()
+    if (!available?.length) return alert('❌ ไม่มีถุงว่างใน stock')
+
+    // Group by item for readability
+    const grouped = {}
+    available.forEach(b => {
+      const it = window._itemsById?.[b.item_id]
+      const name = it?.name || b.item_id
+      if (!grouped[name]) grouped[name] = []
+      grouped[name].push(b)
+    })
+    const opts = Object.entries(grouped).map(([name, bags]) =>
+      `── ${name} ──\n` + bags.map(b => `  #${b.bag_no} (${(b.weight_g/1000).toFixed(3)}กก.) [id:${b.id}]`).join('\n')
+    ).join('\n')
+
+    const pick = prompt(`เพิ่มถุงเข้าบิล ${d.bill_no}\n\nเลือกถุง — พิมพ์เลข id:\n\n${opts}`)
+    if (!pick) return
+    const newCwId = parseInt(pick.replace(/[^\d]/g, ''), 10)
+    if (!newCwId || !available.find(b => b.id === newCwId)) return alert('❌ id ไม่ถูกต้อง')
+
+    const reason = prompt('เหตุผลที่เพิ่ม (≥ 10 ตัวอักษร):')
+    if (!reason) return
+    if (reason.length < 10) return alert('❌ เหตุผลต้องมีอย่างน้อย 10 ตัวอักษร')
+
+    const newBag = available.find(b => b.id === newCwId)
+    const bagName = window._itemsById?.[newBag.item_id]?.name || '?'
+    if (!confirm(`ยืนยันเพิ่มถุง?\n\nบิล: ${d.bill_no}\nถุง: ${bagName} #${newBag.bag_no} (${(newBag.weight_g/1000).toFixed(3)}กก.)\n\nเหตุผล: ${reason}`)) return
+
+    const actor = window.nntnCurrentUser || 'unknown'
+    const r = await callAdjustRpc('rpc_delivery_add_bag', { p_actor: actor, p_delivery_id: d.id, p_cw_id: newCwId, p_reason: reason })
+    alert(`✅ เพิ่มถุงสำเร็จ (sm #${r.sm_id})`)
+    _logSubmit('adjust_add', 'success', { delivery_id: d.id, cw_id: newCwId, reason })
+    loadAdjust()
+  } catch (e) {
+    alert(`❌ เพิ่มไม่ได้: ${e.message}`)
+    _logSubmit('adjust_add', 'error', { delivery_id: d?.id }, { error_msg: e.message })
+  }
 }
 
 function parseBillNote(note) {

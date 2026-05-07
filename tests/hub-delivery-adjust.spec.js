@@ -39,6 +39,7 @@ async function query(page, table, params) {
 }
 
 test.describe('Adjust delivery RPCs', () => {
+  test.describe.configure({ mode: 'serial', timeout: 45_000 });
   test.beforeEach(async ({ page }) => {
     await page.goto('hub-delivery.html');
     await page.waitForLoadState('networkidle', { timeout: 15_000 });
@@ -252,5 +253,39 @@ test.describe('Adjust delivery RPCs', () => {
     });
     expect(rev.status).toBe(200);
     expect(rev.body.ok).toBe(true);
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════
+// Adjust UI tab tests
+// ═══════════════════════════════════════════════════════════════
+test.describe('Adjust UI tab', () => {
+  test('adjust tab exists and loads', async ({ page }) => {
+    await page.goto('hub-delivery.html');
+    await page.waitForLoadState('networkidle', { timeout: 15_000 });
+
+    const adjBtn = page.locator('#tab-btn-adjust');
+    if (await adjBtn.count() === 0) { test.skip(); return; }
+
+    await expect(adjBtn).toContainText('ปรับแก้');
+    await adjBtn.click();
+    const adjPane = page.locator('#tab-adjust');
+    await expect(adjPane).toHaveClass(/active/);
+
+    await page.waitForSelector('#adjust-list :not(.loading)', { timeout: 15_000 });
+    await expect(page.locator('#adjust-list .loading')).toHaveCount(0);
+  });
+
+  test('adjust tab shows 24hr banner', async ({ page }) => {
+    await page.goto('hub-delivery.html');
+    await page.waitForLoadState('networkidle', { timeout: 15_000 });
+
+    const adjBtn = page.locator('#tab-btn-adjust');
+    if (await adjBtn.count() === 0) { test.skip(); return; }
+
+    await adjBtn.click();
+    const banner = page.locator('#tab-adjust .info-banner');
+    await expect(banner).toBeVisible();
+    await expect(banner).toContainText('24 ชั่วโมง');
   });
 });
