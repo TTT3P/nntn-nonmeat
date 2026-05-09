@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script src="/nntn/auth.js"></script>
+<title>NNTN — Sales Analysis</title>
+<link href="https://fonts.googleapis.com/css2?family=Crimson+Text:wght@400;600;700&family=Sarabun:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<style>
+:root {
+  --brand-green:  #005036;
+  --brand-gold:   #D29568;
+  --danger:       #C62828;
+  --success:      #2E7D32;
+  --bg:           #FAFAF7;
+  --grid:         #E0E0D8;
+  --ink:          #1A1A1A;
+  --muted:        #8A8A7F;
+  --surface:      #FFFFFF;
+  --gold-light:   #FBF4ED;
+  --green-light:  #E8F0EC;
+  --gap-sm:       16px;
+  --gap-md:       32px;
+  --radius:       10px;
+  --c-walkin:     #005036;
+  --c-lineman:    #00B14F;
+  --c-grab:       #00B14F;
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family:'Sarabun',-apple-system,sans-serif; background:var(--bg); color:var(--ink); font-size:15px; line-height:1.5; padding-bottom:48px; }
+
+.header { background:var(--brand-green); padding:14px 24px 12px; display:flex; justify-content:space-between; align-items:center; }
+.header-brand { display:flex; flex-direction:column; }
+.header-eyebrow { font-family:'Crimson Text',serif; font-size:10px; letter-spacing:4px; text-transform:uppercase; color:var(--brand-gold); opacity:.85; }
+.header-title { font-family:'Crimson Text',serif; font-size:22px; font-weight:700; color:#fff; letter-spacing:.5px; }
+.header-title span { color:var(--brand-gold); }
+.header-nav { display:flex; align-items:center; gap:12px; }
+.hub-link { font-size:13px; color:rgba(255,255,255,.8); text-decoration:none; padding:5px 12px; border:1px solid rgba(255,255,255,.3); border-radius:6px; transition:background .12s; }
+.hub-link:hover { background:rgba(255,255,255,.12); }
+
+.container { max-width:960px; margin:0 auto; padding:var(--gap-sm); }
+.filter-bar { display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-bottom:var(--gap-sm); background:var(--surface); padding:12px 16px; border-radius:var(--radius); border:1px solid var(--grid); }
+.filter-bar label { font-size:13px; color:var(--muted); font-weight:600; }
+.filter-bar input[type=date] { padding:6px 10px; border:1.5px solid var(--grid); border-radius:6px; font-family:inherit; font-size:14px; }
+.filter-bar select { padding:6px 10px; border:1.5px solid var(--grid); border-radius:6px; font-family:inherit; font-size:14px; }
+.range-chips { display:flex; gap:6px; }
+.range-chip { padding:5px 14px; border-radius:20px; border:1.5px solid var(--grid); font-size:13px; cursor:pointer; background:var(--surface); font-family:inherit; font-weight:600; color:var(--muted); transition:all .12s; }
+.range-chip.active { background:var(--brand-green); color:#fff; border-color:var(--brand-green); }
+
+.kpi-row { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:var(--gap-sm); }
+@media(max-width:640px) { .kpi-row { grid-template-columns:repeat(2,1fr); } }
+.kpi { background:var(--surface); border-radius:var(--radius); padding:16px; border:1px solid var(--grid); }
+.kpi-label { font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:.05em; font-weight:600; }
+.kpi-val { font-size:1.6rem; font-weight:700; margin-top:2px; }
+.kpi-sub { font-size:12px; color:var(--muted); margin-top:2px; }
+.kpi-green { color:var(--success); }
+.kpi-gold { color:var(--brand-gold); }
+
+.card { background:var(--surface); border-radius:var(--radius); padding:20px; margin-bottom:var(--gap-sm); border:1px solid var(--grid); }
+.card-title { font-size:15px; font-weight:700; margin-bottom:14px; display:flex; align-items:center; gap:8px; }
+.card-title .badge { font-size:11px; background:var(--green-light); color:var(--brand-green); padding:2px 10px; border-radius:10px; font-weight:600; }
+
+.chart-wrap { position:relative; height:260px; }
+@media(max-width:640px) { .chart-wrap { height:200px; } }
+
+.tbl { width:100%; border-collapse:collapse; font-size:14px; }
+.tbl th { background:#f5f5f2; padding:8px 10px; text-align:left; font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:var(--muted); border-bottom:2px solid var(--grid); }
+.tbl td { padding:9px 10px; border-bottom:1px solid #f0f0ed; }
+.tbl tr:hover td { background:#fafaf7; }
+.tbl .num { text-align:right; font-variant-numeric:tabular-nums; }
+.rank { display:inline-flex; align-items:center; justify-content:center; width:22px; height:22px; border-radius:50%; font-size:11px; font-weight:700; }
+.rank-1 { background:#FFD700; color:#5D4037; }
+.rank-2 { background:#E0E0E0; color:#424242; }
+.rank-3 { background:#FFCC80; color:#5D4037; }
+.rank-n { background:#f5f5f2; color:var(--muted); }
+
+.bar-inline { display:flex; align-items:center; gap:8px; }
+.bar-fill { height:8px; border-radius:4px; background:var(--brand-green); min-width:2px; }
+.bar-pct { font-size:12px; color:var(--muted); min-width:36px; }
+
+.coverage-meter { display:flex; align-items:center; gap:12px; }
+.coverage-bar { flex:1; height:24px; background:#f0f0ed; border-radius:12px; overflow:hidden; position:relative; }
+.coverage-fill { height:100%; background:var(--brand-green); border-radius:12px; transition:width .4s; }
+.coverage-pct { font-size:1.3rem; font-weight:700; min-width:60px; text-align:right; }
+
+.grid-2 { display:grid; grid-template-columns:1fr 1fr; gap:var(--gap-sm); }
+@media(max-width:700px) { .grid-2 { grid-template-columns:1fr; } }
+
+.loading { color:var(--muted); font-style:italic; font-size:14px; padding:24px; text-align:center; }
+.error-msg { color:var(--danger); font-size:14px; padding:16px; background:#FFEBEE; border-radius:8px; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-brand">
+    <div class="header-eyebrow">NNTN · Sales</div>
+    <div class="header-title">Sales <span>Analysis</span></div>
+  </div>
+  <div class="header-nav">
+    <a class="hub-link" href="./hub.html">← Hub</a>
+    <a class="hub-link" href="./sales-ops.html">Sales Ops</a>
+  </div>
+</div>
+
+<div class="container">
+
+  <div class="filter-bar">
+    <label>ช่วงวัน</label>
+    <div class="range-chips">
+      <button class="range-chip active" data-days="7">7 วัน</button>
+      <button class="range-chip" data-days="14">14 วัน</button>
+      <button class="range-chip" data-days="30">30 วัน</button>
+      <button class="range-chip" data-days="0">ทั้งหมด</button>
+    </div>
+    <label style="margin-left:auto">สาขา</label>
+    <select id="branch-sel">
+      <option value="all">ทุกสาขา</option>
+      <option value="NT-KITCHEN">ร้านครัว</option>
+      <option value="NT-NOODLE">ร้านก๋วยเตี๋ยว</option>
+    </select>
+  </div>
+
+  <div class="kpi-row">
+    <div class="kpi"><div class="kpi-label">รายได้รวม</div><div class="kpi-val kpi-green" id="kpi-revenue">—</div><div class="kpi-sub" id="kpi-revenue-sub"></div></div>
+    <div class="kpi"><div class="kpi-label">จำนวนบิล</div><div class="kpi-val" id="kpi-bills">—</div><div class="kpi-sub" id="kpi-bills-sub"></div></div>
+    <div class="kpi"><div class="kpi-label">เฉลี่ย / บิล</div><div class="kpi-val kpi-gold" id="kpi-avg">—</div><div class="kpi-sub" id="kpi-avg-sub"></div></div>
+    <div class="kpi"><div class="kpi-label">เมนูขาย</div><div class="kpi-val" id="kpi-menus">—</div><div class="kpi-sub" id="kpi-menus-sub"></div></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">📈 รายได้รายวัน <span class="badge" id="trend-badge">7 วัน</span></div>
+    <div class="chart-wrap"><canvas id="chart-trend"></canvas></div>
+  </div>
+
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-title">📊 Channel Breakdown</div>
+      <div style="height:220px;position:relative"><canvas id="chart-channel"></canvas></div>
+      <div id="channel-legend" style="margin-top:10px"></div>
+    </div>
+    <div class="card">
+      <div class="card-title">🗺️ Menu Mapping Coverage</div>
+      <div id="coverage-box" style="padding:12px 0"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">🏆 Top 20 เมนูขายดี (ตามจำนวน)</div>
+    <div id="top-menu-table"><div class="loading">กำลังโหลด...</div></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">💰 Top 20 เมนูรายได้สูงสุด</div>
+    <div id="top-revenue-table"><div class="loading">กำลังโหลด...</div></div>
+  </div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<script>
+const sb = (window.NNTN_SB_URL && window.NNTN_SB_ANON)
+  ? supabase.createClient(window.NNTN_SB_URL, window.NNTN_SB_ANON, {
+      db: { schema: 'sales_ops' },
+      global: { headers: {
+        'Accept-Profile': 'sales_ops',
+        'Content-Profile': 'sales_ops',
+        'Authorization': 'Bearer ' + (window.__nntnCurrentToken || localStorage.getItem('nntn_sb_token') || window.NNTN_SB_ANON)
+      }}
+    })
+  : null;
+
+const esc = s => (s ?? '—').toString().replace(/[<>&"]/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c]));
+const fmt = n => new Intl.NumberFormat('th-TH').format(Math.round(+n || 0));
+const fmtB = n => '฿' + fmt(n);
+
+let allFs = [];
+let allDaily = [];
+let allAliases = [];
+let currentDays = 7;
+let currentBranch = 'all';
+let trendChart = null;
+let channelChart = null;
+
+function dateStr(d) { return d.toISOString().split('T')[0]; }
+function addDays(d, n) { const r = new Date(d); r.setDate(r.getDate()+n); return r; }
+
+async function loadData() {
+  if (!sb) { document.querySelector('.container').innerHTML = '<div class="error-msg">Supabase ไม่พร้อม — กรุณา login ก่อน</div>'; return; }
+
+  const [fsRes, dailyRes, aliasRes] = await Promise.all([
+    sb.from('fs_items').select('sale_date,branch_id,menu_name,qty,unit_price,discounted_price,channel_name,receipt_no').order('sale_date', { ascending: true }),
+    sb.from('v_daily_revenue').select('*').order('sale_date', { ascending: true }),
+    sb.from('menu_aliases').select('menu_name,rcp_code,is_active').eq('is_active', true)
+  ]);
+
+  if (fsRes.error) { document.querySelector('.container').innerHTML = `<div class="error-msg">โหลดข้อมูลไม่ได้: ${fsRes.error.message}</div>`; return; }
+
+  allFs = fsRes.data || [];
+  allDaily = dailyRes.data || [];
+  allAliases = aliasRes.data || [];
+
+  render();
+}
+
+function getDateRange() {
+  if (!allFs.length) return { start: '', end: '' };
+  const maxDate = allFs[allFs.length - 1].sale_date;
+  if (currentDays === 0) return { start: allFs[0].sale_date, end: maxDate };
+  const end = new Date(maxDate);
+  const start = addDays(end, -(currentDays - 1));
+  return { start: dateStr(start), end: maxDate };
+}
+
+function filterFs() {
+  const { start, end } = getDateRange();
+  return allFs.filter(r => {
+    if (r.sale_date < start || r.sale_date > end) return false;
+    if (currentBranch !== 'all' && r.branch_id !== currentBranch) return false;
+    return true;
+  });
+}
+
+function filterDaily() {
+  const { start, end } = getDateRange();
+  return allDaily.filter(r => {
+    if (r.sale_date < start || r.sale_date > end) return false;
+    if (currentBranch !== 'all' && r.branch_id !== currentBranch) return false;
+    return true;
+  });
+}
+
+function render() {
+  const rows = filterFs();
+  const daily = filterDaily();
+  renderKPIs(rows);
+  renderTrend(daily);
+  renderChannel(rows);
+  renderCoverage(rows);
+  renderTopMenuQty(rows);
+  renderTopMenuRevenue(rows);
+  document.getElementById('trend-badge').textContent = currentDays === 0 ? 'ทั้งหมด' : currentDays + ' วัน';
+}
+
+function renderKPIs(rows) {
+  const revenue = rows.reduce((s, r) => s + (+r.discounted_price || 0), 0);
+  const bills = new Set(rows.map(r => r.receipt_no)).size;
+  const avg = bills > 0 ? revenue / bills : 0;
+  const menus = new Set(rows.map(r => r.menu_name)).size;
+  const days = new Set(rows.map(r => r.sale_date)).size;
+
+  document.getElementById('kpi-revenue').textContent = fmtB(revenue);
+  document.getElementById('kpi-revenue-sub').textContent = days + ' วัน';
+  document.getElementById('kpi-bills').textContent = fmt(bills);
+  document.getElementById('kpi-bills-sub').textContent = 'เฉลี่ย ' + fmt(Math.round(bills / (days || 1))) + '/วัน';
+  document.getElementById('kpi-avg').textContent = fmtB(avg);
+  document.getElementById('kpi-avg-sub').textContent = 'ต่อบิล';
+  document.getElementById('kpi-menus').textContent = fmt(menus);
+  document.getElementById('kpi-menus-sub').textContent = 'เมนูไม่ซ้ำ';
+}
+
+function renderTrend(daily) {
+  const grouped = {};
+  daily.forEach(r => {
+    if (!grouped[r.sale_date]) grouped[r.sale_date] = { fs: 0, grab: 0 };
+    grouped[r.sale_date].fs += +r.fs_revenue || 0;
+    grouped[r.sale_date].grab += +r.grab_revenue || 0;
+  });
+
+  if (currentBranch === 'all') {
+    const merged = {};
+    daily.forEach(r => {
+      if (!merged[r.sale_date]) merged[r.sale_date] = { fs: 0, grab: 0 };
+      merged[r.sale_date].fs += +r.fs_revenue || 0;
+      merged[r.sale_date].grab += +r.grab_revenue || 0;
+    });
+    Object.assign(grouped, merged);
+  }
+
+  const dates = Object.keys(grouped).sort();
+  const fsData = dates.map(d => grouped[d].fs);
+  const grabData = dates.map(d => grouped[d].grab);
+  const labels = dates.map(d => { const p = d.split('-'); return p[2] + '/' + p[1]; });
+
+  if (trendChart) trendChart.destroy();
+  trendChart = new Chart(document.getElementById('chart-trend'), {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [
+        { label: 'FoodStory', data: fsData, backgroundColor: '#D29568', borderRadius: 4 },
+        { label: 'Grab', data: grabData, backgroundColor: '#005036', borderRadius: 4 }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { position: 'top', labels: { font: { family: 'Sarabun', size: 12 } } } },
+      scales: {
+        x: { stacked: true, grid: { display: false } },
+        y: { stacked: true, ticks: { callback: v => '฿' + (v >= 1000 ? (v/1000).toFixed(0) + 'k' : v) } }
+      }
+    }
+  });
+}
+
+function renderChannel(rows) {
+  const ch = {};
+  rows.forEach(r => {
+    const name = r.channel_name || 'อื่นๆ';
+    if (!ch[name]) ch[name] = { revenue: 0, orders: new Set() };
+    ch[name].revenue += +r.discounted_price || 0;
+    ch[name].orders.add(r.receipt_no);
+  });
+
+  const entries = Object.entries(ch).sort((a, b) => b[1].revenue - a[1].revenue);
+  const labels = entries.map(e => e[0]);
+  const data = entries.map(e => e[1].revenue);
+  const colors = ['#005036', '#D29568', '#37474F', '#5C6BC0', '#8A8A7F'];
+  const total = data.reduce((s, v) => s + v, 0);
+
+  if (channelChart) channelChart.destroy();
+  channelChart = new Chart(document.getElementById('chart-channel'), {
+    type: 'doughnut',
+    data: {
+      labels,
+      datasets: [{ data, backgroundColor: colors.slice(0, labels.length), borderWidth: 2, borderColor: '#fff' }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      cutout: '60%',
+      plugins: { legend: { display: false } }
+    }
+  });
+
+  document.getElementById('channel-legend').innerHTML = entries.map((e, i) =>
+    `<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;font-size:13px">
+      <span style="width:12px;height:12px;border-radius:3px;background:${colors[i]};flex-shrink:0"></span>
+      <span style="flex:1">${esc(e[0])}</span>
+      <span style="font-weight:600">${fmtB(e[1].revenue)}</span>
+      <span style="color:var(--muted);min-width:40px;text-align:right">${total > 0 ? ((e[1].revenue / total * 100).toFixed(1) + '%') : '—'}</span>
+    </div>`
+  ).join('');
+}
+
+function renderCoverage(rows) {
+  const uniqueMenus = new Set(rows.map(r => r.menu_name));
+  const aliasSet = new Set(allAliases.map(a => a.menu_name));
+  let mapped = 0;
+  uniqueMenus.forEach(m => { if (aliasSet.has(m)) mapped++; });
+  const total = uniqueMenus.size;
+  const pct = total > 0 ? (mapped / total * 100) : 0;
+  const color = pct >= 80 ? 'var(--success)' : pct >= 50 ? 'var(--brand-gold)' : 'var(--danger)';
+
+  document.getElementById('coverage-box').innerHTML = `
+    <div class="coverage-meter">
+      <div class="coverage-bar"><div class="coverage-fill" style="width:${pct}%;background:${color}"></div></div>
+      <div class="coverage-pct" style="color:${color}">${pct.toFixed(1)}%</div>
+    </div>
+    <div style="display:flex;justify-content:space-between;margin-top:10px;font-size:13px;color:var(--muted)">
+      <span>✅ Mapped: <b style="color:var(--ink)">${mapped}</b> เมนู</span>
+      <span>❌ ยังไม่ map: <b style="color:var(--danger)">${total - mapped}</b> เมนู</span>
+      <span>📋 รวม: <b style="color:var(--ink)">${total}</b></span>
+    </div>
+    <div style="margin-top:12px;font-size:12px;color:var(--muted)">
+      Coverage ต่ำ = ยังไม่รู้ว่าเมนูไหน map กับ RCP สูตรไหน → กระทบ FC% variance
+    </div>`;
+}
+
+function renderTopMenuQty(rows) {
+  const menu = {};
+  rows.forEach(r => {
+    const n = r.menu_name;
+    if (!menu[n]) menu[n] = { qty: 0, rev: 0 };
+    menu[n].qty += +r.qty || 0;
+    menu[n].rev += +r.discounted_price || 0;
+  });
+  const sorted = Object.entries(menu).sort((a, b) => b[1].qty - a[1].qty).slice(0, 20);
+  const maxQty = sorted[0]?.[1]?.qty || 1;
+
+  document.getElementById('top-menu-table').innerHTML = `<table class="tbl">
+    <thead><tr><th style="width:30px">#</th><th>เมนู</th><th class="num">จำนวน</th><th style="width:120px"></th><th class="num">รายได้</th></tr></thead>
+    <tbody>${sorted.map(([name, d], i) => `<tr>
+      <td><span class="rank ${i < 3 ? 'rank-' + (i+1) : 'rank-n'}">${i+1}</span></td>
+      <td>${esc(name)}</td>
+      <td class="num"><b>${fmt(d.qty)}</b></td>
+      <td><div class="bar-inline"><div class="bar-fill" style="width:${(d.qty/maxQty*100).toFixed(1)}%"></div><div class="bar-pct">${(d.qty/maxQty*100).toFixed(0)}%</div></div></td>
+      <td class="num">${fmtB(d.rev)}</td>
+    </tr>`).join('')}</tbody></table>`;
+}
+
+function renderTopMenuRevenue(rows) {
+  const menu = {};
+  rows.forEach(r => {
+    const n = r.menu_name;
+    if (!menu[n]) menu[n] = { qty: 0, rev: 0 };
+    menu[n].qty += +r.qty || 0;
+    menu[n].rev += +r.discounted_price || 0;
+  });
+  const sorted = Object.entries(menu).sort((a, b) => b[1].rev - a[1].rev).slice(0, 20);
+  const maxRev = sorted[0]?.[1]?.rev || 1;
+
+  document.getElementById('top-revenue-table').innerHTML = `<table class="tbl">
+    <thead><tr><th style="width:30px">#</th><th>เมนู</th><th class="num">รายได้</th><th style="width:120px"></th><th class="num">จำนวน</th></tr></thead>
+    <tbody>${sorted.map(([name, d], i) => `<tr>
+      <td><span class="rank ${i < 3 ? 'rank-' + (i+1) : 'rank-n'}">${i+1}</span></td>
+      <td>${esc(name)}</td>
+      <td class="num"><b>${fmtB(d.rev)}</b></td>
+      <td><div class="bar-inline"><div class="bar-fill" style="width:${(d.rev/maxRev*100).toFixed(1)}%;background:var(--brand-gold)"></div><div class="bar-pct">${(d.rev/maxRev*100).toFixed(0)}%</div></div></td>
+      <td class="num">${fmt(d.qty)}</td>
+    </tr>`).join('')}</tbody></table>`;
+}
+
+document.querySelectorAll('.range-chip').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.range-chip').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    currentDays = +btn.dataset.days;
+    render();
+  });
+});
+
+document.getElementById('branch-sel').addEventListener('change', e => {
+  currentBranch = e.target.value;
+  render();
+});
+
+loadData();
+</script>
+</body>
+</html>
