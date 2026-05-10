@@ -128,11 +128,59 @@
   .room-btn.active { border-color: var(--accent); color: var(--accent); background: rgba(88,166,255,0.1); }
 
   .empty { flex: 1; display: flex; align-items: center; justify-content: center; color: var(--muted); font-size: 14px; }
+
+  /* HOME page */
+  #home { flex: 1; overflow-y: auto; padding: 0; display: none; }
+  #home.active { display: block; }
+  .home-hero { text-align: center; padding: 48px 20px 32px; }
+  .home-hero h2 { font-size: 28px; font-weight: 700; margin-bottom: 6px; }
+  .home-hero p { color: var(--muted); font-size: 15px; }
+
+  .home-section { padding: 0 20px 24px; max-width: 800px; margin: 0 auto; }
+  .home-section h3 { font-size: 15px; font-weight: 600; color: var(--muted); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+
+  .room-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; }
+  .room-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; cursor: pointer; transition: border-color 0.2s, transform 0.15s; }
+  .room-card:hover { border-color: var(--accent); transform: translateY(-2px); }
+  .room-card .rc-top { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+  .room-card .rc-name { font-weight: 600; font-size: 15px; }
+  .room-card .rc-mode { font-size: 10px; padding: 1px 7px; border-radius: 8px; font-weight: 600; }
+  .room-card .rc-status { margin-left: auto; font-size: 10px; font-weight: 600; padding: 1px 7px; border-radius: 8px; }
+  .room-card .rc-status.live { background: rgba(63,185,80,0.15); color: var(--pass); }
+  .room-card .rc-status.closed { background: rgba(248,81,73,0.15); color: var(--fail); }
+  .room-card .rc-stats { font-size: 12px; color: var(--muted); display: flex; gap: 12px; flex-wrap: wrap; }
+  .room-card .rc-speakers { font-size: 11px; color: var(--muted); margin-top: 6px; }
+
+  .create-row { display: flex; gap: 8px; margin-bottom: 10px; }
+  .create-row input { flex: 1; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 10px 14px; color: var(--text); font-size: 14px; outline: none; }
+  .create-row input:focus { border-color: var(--accent); }
+  .create-row button { background: var(--accent); color: #fff; border: none; border-radius: 8px; padding: 10px 20px; font-size: 14px; font-weight: 600; cursor: pointer; }
+  .create-row button:hover { opacity: 0.9; }
+  .create-modes { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 4px; }
+  .create-modes .mode-btn { font-size: 12px; }
+
+  .guide-toggle { background: none; border: 1px solid var(--border); border-radius: 8px; padding: 8px 14px; color: var(--muted); font-size: 13px; cursor: pointer; width: 100%; text-align: left; margin-bottom: 10px; }
+  .guide-toggle:hover { border-color: var(--accent); color: var(--accent); }
+  .guide-content { display: none; }
+  .guide-content.open { display: block; }
+  .guide-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  @media (max-width: 600px) { .guide-grid { grid-template-columns: 1fr; } }
+  .guide-item { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; }
+  .guide-item .gi-title { font-weight: 600; font-size: 14px; margin-bottom: 3px; }
+  .guide-item .gi-desc { font-size: 12px; color: var(--muted); }
+  .guide-tips { margin-top: 14px; font-size: 12px; color: var(--muted); line-height: 1.8; }
+  .guide-tips code { background: var(--surface); padding: 1px 5px; border-radius: 4px; font-size: 11px; }
+
+  .chat-view { display: flex; flex-direction: column; flex: 1; }
+  .chat-view.hidden { display: none; }
+  .btn-home { font-size: 16px; cursor: pointer; background: none; border: none; color: var(--muted); padding: 2px 6px; border-radius: 4px; }
+  .btn-home:hover { color: var(--accent); background: rgba(88,166,255,0.1); }
 </style>
 </head>
 <body>
 
 <header>
+  <button class="btn-home" id="btn-home" title="Home">🏠</button>
   <h1>Meeting Room</h1>
   <span class="room-badge" id="room-label">general</span>
   <span class="mode-badge" id="mode-label" style="display:none"></span>
@@ -145,6 +193,63 @@
   </div>
 </header>
 
+<!-- HOME PAGE -->
+<div id="home">
+  <div class="home-hero">
+    <h2>Meeting Room</h2>
+    <p>ห้องประชุม AI real-time · TINE เป็นประธาน</p>
+  </div>
+
+  <div class="home-section">
+    <h3>Active Rooms</h3>
+    <div class="room-cards" id="room-cards">
+      <div style="color:var(--muted); font-size:13px;">Loading rooms...</div>
+    </div>
+  </div>
+
+  <div class="home-section">
+    <h3>Create New Room</h3>
+    <div class="create-modes" id="create-modes">
+      <button class="mode-btn active" data-cmode="realtime">💬 Real-time</button>
+      <button class="mode-btn" data-cmode="rounds">🔄 Rounds</button>
+      <button class="mode-btn" data-cmode="blind">🔒 Blind</button>
+      <button class="mode-btn" data-cmode="jury">⚖️ Jury</button>
+      <button class="mode-btn" data-cmode="1v1">⚔️ 1v1</button>
+      <button class="mode-btn" data-cmode="brainstorm">💡 Brainstorm</button>
+    </div>
+    <div class="create-row">
+      <input type="text" id="new-room-input" placeholder="ชื่อห้อง (เช่น design-review)" autocomplete="off">
+      <button id="btn-create-room">Create</button>
+    </div>
+  </div>
+
+  <div class="home-section">
+    <button class="guide-toggle" id="guide-toggle">📖 คู่มือการใช้งาน ▸</button>
+    <div class="guide-content" id="guide-content">
+      <div class="guide-grid">
+        <div class="guide-item"><div class="gi-title">💬 Real-time</div><div class="gi-desc">อิสระ เหมือน group chat ทุกคนพิมพ์ได้ตลอด</div></div>
+        <div class="guide-item"><div class="gi-title">🔄 Rounds</div><div class="gi-desc">3 rounds — อิสระ → โต้แย้ง → สรุป</div></div>
+        <div class="guide-item"><div class="gi-title">🔒 Blind</div><div class="gi-desc">ซ่อนคำตอบ เปิดพร้อมกัน กัน anchoring bias</div></div>
+        <div class="guide-item"><div class="gi-title">⚖️ Jury</div><div class="gi-desc">นำเสนอ → โหวต PASS/FAIL พร้อมเหตุผล</div></div>
+        <div class="guide-item"><div class="gi-title">⚔️ 1v1</div><div class="gi-desc">เลือก 2 AI debate ที่เหลือนั่งดู</div></div>
+        <div class="guide-item"><div class="gi-title">💡 Brainstorm</div><div class="gi-desc">ไอเดียก่อน (ห้ามค้าน) → กรองทีหลัง</div></div>
+      </div>
+      <div class="guide-tips">
+        <strong>Tips:</strong><br>
+        <code>@ชื่อ</code> = mention ตรง<br>
+        <code>[consensus]</code> = mark จุดเห็นตรงกัน (แถบเขียว)<br>
+        <code>[summary]</code> = ประธานสรุป (แถบทอง)<br>
+        <code>[PASS]</code> / <code>[FAIL]</code> = โหวต Jury<br>
+        <code>/vs name1 name2</code> = ตั้ง 1v1 debaters<br>
+        ปุ่ม <strong>Minutes</strong> = download วาระประชุม<br>
+        ปุ่ม <strong>Close</strong> = จบประชุม + auto-save
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- CHAT VIEW -->
+<div class="chat-view" id="chat-view">
 <div class="round-bar" id="round-bar">
   <div class="round-steps">
     <div class="round-step" id="rs1"></div>
@@ -189,6 +294,7 @@
   </div>
   <div class="input-hints" id="input-hints">@ชื่อ = mention &nbsp;|&nbsp; [consensus] = consensus &nbsp;|&nbsp; [summary] = chairman summary</div>
 </footer>
+</div><!-- /chat-view -->
 
 <script>
 const SUPABASE_URL = 'https://emjqulzikpxorvpaaiww.supabase.co';
@@ -208,8 +314,9 @@ const modeLabelEl = document.getElementById('mode-label');
 const hintsEl = document.getElementById('input-hints');
 
 const params = new URLSearchParams(location.search);
-let currentRoom = params.get('room') || 'general';
+let currentRoom = params.get('room') || '';
 let currentMode = params.get('mode') || 'realtime';
+let isHome = !currentRoom;
 let rooms = new Set(['general']);
 let currentRound = 0;
 let typingTimers = {};
@@ -464,21 +571,7 @@ function renderTabs() {
 }
 
 async function switchRoom(room) {
-  currentRoom = room;
-  roomLabel.textContent = room;
-  messagesEl.innerHTML = '<div class="empty" id="empty-state">loading...</div>';
-  renderTabs();
-  setRound(0);
-  isClosed = false; isRevealed = false; juryPass = 0; juryFail = 0;
-  inputEl.disabled = false;
-  inputEl.placeholder = 'พิมพ์ข้อความ (ส่งในนาม TINE)...';
-  sendBtn.disabled = false;
-  document.getElementById('status-dot').classList.remove('closed');
-  document.getElementById('status-text').textContent = 'Live';
-  await loadMessages();
-  const u = new URL(location.href);
-  u.searchParams.set('room', room);
-  history.replaceState(null, '', u);
+  showChat(room, currentMode);
 }
 
 async function loadMessages() {
@@ -583,7 +676,137 @@ async function saveMinutes() {
   URL.revokeObjectURL(url);
 }
 
+// --- Home / Chat toggle ---
+function showHome() {
+  isHome = true;
+  document.getElementById('home').classList.add('active');
+  document.getElementById('chat-view').classList.add('hidden');
+  roomLabel.textContent = '';
+  modeLabelEl.style.display = 'none';
+  document.querySelectorAll('.actions .btn-action, .actions .status').forEach(el => el.style.display = 'none');
+  const u = new URL(location.href);
+  u.searchParams.delete('room');
+  u.searchParams.delete('mode');
+  history.replaceState(null, '', u.pathname);
+  loadHome();
+}
+
+function showChat(room, mode) {
+  isHome = false;
+  currentRoom = room;
+  currentMode = mode || 'realtime';
+  document.getElementById('home').classList.remove('active');
+  document.getElementById('chat-view').classList.remove('hidden');
+  document.querySelectorAll('.actions .btn-action, .actions .status').forEach(el => el.style.display = '');
+  roomLabel.textContent = room;
+  isClosed = false; isRevealed = false; juryPass = 0; juryFail = 0;
+  inputEl.disabled = false; sendBtn.disabled = false;
+  inputEl.placeholder = 'พิมพ์ข้อความ (ส่งในนาม TINE)...';
+  document.getElementById('status-dot').classList.remove('closed');
+  document.getElementById('status-text').textContent = 'Live';
+  setMode(currentMode);
+  loadRooms();
+  loadMessages();
+  const u = new URL(location.href);
+  u.searchParams.set('room', room);
+  u.searchParams.set('mode', currentMode);
+  history.replaceState(null, '', u);
+}
+
+async function loadHome() {
+  const cardsEl = document.getElementById('room-cards');
+  cardsEl.innerHTML = '<div style="color:var(--muted);font-size:13px;">Loading...</div>';
+
+  const { data } = await sb.from('meeting_messages').select('room, speaker, message, created_at')
+    .order('created_at', { ascending: false }).limit(1000);
+
+  if (!data || !data.length) {
+    cardsEl.innerHTML = '<div style="color:var(--muted);font-size:13px;">ยังไม่มีห้องประชุม — สร้างห้องใหม่ด้านล่าง</div>';
+    return;
+  }
+
+  const roomMap = {};
+  data.forEach(m => {
+    if (!roomMap[m.room]) roomMap[m.room] = { messages: 0, speakers: new Set(), lastActivity: m.created_at, closed: false, mode: '' };
+    const r = roomMap[m.room];
+    r.messages++;
+    if (m.speaker !== 'system') r.speakers.add(m.speaker);
+    if (m.message.includes('Meeting Closed')) r.closed = true;
+    const modeMatch = m.message.match(/--- Mode: .+ (\w+) ---/);
+    if (modeMatch) r.mode = modeMatch[1];
+  });
+
+  const sorted = Object.entries(roomMap).sort((a, b) => {
+    if (a[1].closed !== b[1].closed) return a[1].closed ? 1 : -1;
+    return new Date(b[1].lastActivity) - new Date(a[1].lastActivity);
+  });
+
+  cardsEl.innerHTML = '';
+  sorted.forEach(([name, info]) => {
+    const card = document.createElement('div');
+    card.className = 'room-card';
+    card.onclick = () => showChat(name, info.mode || 'realtime');
+
+    const ago = getTimeAgo(info.lastActivity);
+    const speakerList = [...info.speakers].map(s => NAMES[s] || s).join(', ');
+    const modeIcon = MODE_ICONS[info.mode] || '💬';
+    const modeColor = MODE_COLORS[info.mode] || 'var(--accent)';
+
+    card.innerHTML = `
+      <div class="rc-top">
+        <span class="rc-name">${name}</span>
+        <span class="rc-mode" style="background:${modeColor};color:#000">${modeIcon} ${info.mode || 'realtime'}</span>
+        <span class="rc-status ${info.closed ? 'closed' : 'live'}">${info.closed ? 'Closed' : 'Active'}</span>
+      </div>
+      <div class="rc-stats">
+        <span>💬 ${info.messages}</span>
+        <span>👥 ${info.speakers.size}</span>
+        <span>🕐 ${ago}</span>
+      </div>
+      <div class="rc-speakers">${speakerList}</div>
+    `;
+    cardsEl.appendChild(card);
+  });
+}
+
+function getTimeAgo(ts) {
+  const diff = Date.now() - new Date(ts).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return 'just now';
+  if (mins < 60) return mins + 'm ago';
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return hrs + 'h ago';
+  return Math.floor(hrs / 24) + 'd ago';
+}
+
 // --- Events ---
+document.getElementById('btn-home').onclick = showHome;
+
+document.getElementById('btn-create-room').onclick = () => {
+  const nameRaw = document.getElementById('new-room-input').value.trim();
+  if (!nameRaw) return;
+  const name = nameRaw.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9฀-๿-]/g, '');
+  if (!name) return;
+  const activeBtn = document.querySelector('#create-modes .mode-btn.active');
+  const mode = activeBtn ? activeBtn.dataset.cmode : 'realtime';
+  document.getElementById('new-room-input').value = '';
+  showChat(name, mode);
+};
+
+document.querySelectorAll('#create-modes .mode-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('#create-modes .mode-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+  });
+});
+
+document.getElementById('guide-toggle').onclick = () => {
+  const content = document.getElementById('guide-content');
+  const toggle = document.getElementById('guide-toggle');
+  const isOpen = content.classList.toggle('open');
+  toggle.textContent = isOpen ? '📖 คู่มือการใช้งาน ▾' : '📖 คู่มือการใช้งาน ▸';
+};
+
 document.getElementById('btn-minutes').onclick = saveMinutes;
 document.getElementById('btn-round').onclick = cycleRound;
 document.getElementById('btn-close').onclick = closeMeeting;
@@ -602,10 +825,11 @@ document.querySelectorAll('.mode-btn').forEach(btn => {
 });
 
 // --- Init ---
-roomLabel.textContent = currentRoom;
-setMode(currentMode);
-loadRooms();
-loadMessages();
+if (isHome) {
+  showHome();
+} else {
+  showChat(currentRoom, currentMode);
+}
 </script>
 </body>
 </html>
