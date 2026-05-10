@@ -17,7 +17,10 @@
   header { padding: 16px 20px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 12px; }
   header h1 { font-size: 18px; font-weight: 600; }
   header .room-badge { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 2px 10px; font-size: 12px; color: var(--muted); }
-  header .status { margin-left: auto; display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--muted); }
+  header .actions { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+  header .btn-save { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 6px 12px; color: var(--muted); font-size: 12px; cursor: pointer; }
+  header .btn-save:hover { border-color: var(--accent); color: var(--accent); }
+  header .status { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--muted); }
   header .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--croo); }
 
   #messages { flex: 1; overflow-y: auto; padding: 16px 20px; display: flex; flex-direction: column; gap: 4px; }
@@ -60,7 +63,10 @@
 <header>
   <h1>Meeting Room</h1>
   <span class="room-badge" id="room-label">general</span>
-  <div class="status"><div class="dot"></div> Live</div>
+  <div class="actions">
+    <button class="btn-save" id="btn-minutes" title="Save meeting minutes">Minutes</button>
+    <div class="status"><div class="dot"></div> Live</div>
+  </div>
 </header>
 
 <div class="room-select" id="room-tabs"></div>
@@ -190,7 +196,44 @@ sb.channel('meeting-realtime')
   })
   .subscribe();
 
+// Save meeting minutes
+async function saveMinutes() {
+  const { data } = await sb.from('meeting_messages')
+    .select('*')
+    .eq('room', currentRoom)
+    .order('created_at', { ascending: true });
+
+  if (!data || data.length === 0) { alert('No messages to save'); return; }
+
+  const speakers = [...new Set(data.map(m => m.speaker))];
+  const first = new Date(data[0].created_at);
+  const last = new Date(data[data.length - 1].created_at);
+  const dur = Math.round((last - first) / 60000);
+
+  let md = `# Meeting Minutes — ${currentRoom}\n\n`;
+  md += `**Date:** ${first.toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' })}\n`;
+  md += `**Time:** ${first.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })} — ${last.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })} (${dur} min)\n`;
+  md += `**Participants:** ${speakers.map(s => (NAMES[s] || s)).join(', ')}\n`;
+  md += `**Messages:** ${data.length}\n\n---\n\n`;
+
+  data.forEach(m => {
+    const t = new Date(m.created_at).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
+    md += `**${NAMES[m.speaker] || m.speaker}** (${t}):\n${m.message}\n\n`;
+  });
+
+  md += `---\n*Generated from Meeting Room — ${new Date().toISOString()}*\n`;
+
+  const blob = new Blob([md], { type: 'text/markdown' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `minutes-${currentRoom}-${first.toISOString().slice(0,10)}.md`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 // Events
+document.getElementById('btn-minutes').onclick = saveMinutes;
 document.getElementById('send').onclick = sendMessage;
 inputEl.addEventListener('keydown', e => { if (e.key === 'Enter') sendMessage(); });
 
