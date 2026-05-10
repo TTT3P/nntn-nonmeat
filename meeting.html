@@ -11,32 +11,60 @@
     --text: #e6edf3; --muted: #8b949e; --accent: #58a6ff;
     --croo: #3fb950; --gemini: #d2a8ff; --codex: #f0883e; --tine: #58a6ff;
     --consensus: #3fb950; --summary: #f0c674;
+    --pass: #3fb950; --fail: #f85149; --warn: #d29922;
+    --brainstorm: #f0c674;
   }
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body { font-family: -apple-system, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); height: 100vh; display: flex; flex-direction: column; }
 
-  header { padding: 16px 20px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 12px; }
+  header { padding: 12px 20px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
   header h1 { font-size: 18px; font-weight: 600; }
   header .room-badge { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 2px 10px; font-size: 12px; color: var(--muted); }
-  header .actions { margin-left: auto; display: flex; align-items: center; gap: 10px; }
-  header .btn-action { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 6px 12px; color: var(--muted); font-size: 12px; cursor: pointer; }
+  header .mode-badge { border-radius: 12px; padding: 2px 10px; font-size: 11px; font-weight: 600; }
+  header .actions { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+  header .btn-action { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 5px 10px; color: var(--muted); font-size: 12px; cursor: pointer; }
   header .btn-action:hover { border-color: var(--accent); color: var(--accent); }
+  header .btn-close { border-color: var(--fail); color: var(--fail); }
+  header .btn-close:hover { background: var(--fail); color: #fff; }
+  header .btn-reveal { border-color: var(--warn); color: var(--warn); display: none; }
+  header .btn-reveal:hover { background: var(--warn); color: #000; }
   header .status { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--muted); }
   header .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--croo); }
+  header .dot.closed { background: var(--fail); }
 
-  /* Round progress bar */
+  /* Round / brainstorm progress bar */
   .round-bar { display: none; padding: 8px 20px; border-bottom: 1px solid var(--border); background: var(--surface); }
   .round-bar.active { display: flex; align-items: center; gap: 12px; }
   .round-steps { display: flex; gap: 4px; flex: 1; }
   .round-step { flex: 1; height: 4px; border-radius: 2px; background: var(--border); transition: background 0.3s; }
   .round-step.done { background: var(--accent); }
   .round-step.current { background: var(--accent); animation: pulse 1.5s infinite; }
+  .round-step.brainstorm-current { background: var(--brainstorm); animation: pulse 1.5s infinite; }
   @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.5; } }
   .round-label { font-size: 12px; color: var(--muted); white-space: nowrap; }
 
+  /* Mode selector bar */
+  .mode-select { display: flex; gap: 6px; padding: 6px 20px; border-bottom: 1px solid var(--border); background: var(--surface); flex-wrap: wrap; align-items: center; }
+  .mode-select .label { font-size: 11px; color: var(--muted); margin-right: 4px; }
+  .mode-btn { background: none; border: 1px solid var(--border); border-radius: 14px; padding: 3px 12px; color: var(--muted); font-size: 12px; cursor: pointer; }
+  .mode-btn.active { border-color: var(--accent); color: var(--accent); background: rgba(88,166,255,0.1); }
+  .mode-btn:hover { border-color: var(--accent); }
+
+  /* Jury tally */
+  .jury-tally { display: none; padding: 8px 20px; border-bottom: 1px solid var(--border); background: var(--surface); font-size: 13px; gap: 16px; align-items: center; }
+  .jury-tally.active { display: flex; }
+  .jury-tally .pass-count { color: var(--pass); font-weight: 700; }
+  .jury-tally .fail-count { color: var(--fail); font-weight: 700; }
+
+  /* 1v1 header */
+  .vs-bar { display: none; padding: 10px 20px; border-bottom: 1px solid var(--border); background: var(--surface); font-size: 14px; justify-content: center; align-items: center; gap: 16px; }
+  .vs-bar.active { display: flex; }
+  .vs-bar .vs-name { font-weight: 700; font-size: 16px; }
+  .vs-bar .vs-badge { background: var(--fail); color: #fff; font-weight: 800; font-size: 11px; padding: 2px 8px; border-radius: 4px; }
+
   #messages { flex: 1; overflow-y: auto; padding: 16px 20px; display: flex; flex-direction: column; gap: 4px; }
 
-  .msg { display: flex; gap: 10px; padding: 6px 0; animation: fadeIn 0.3s ease; }
+  .msg { display: flex; gap: 10px; padding: 6px 0; animation: fadeIn 0.3s ease; transition: opacity 0.3s; }
   @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
   .msg .avatar { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; flex-shrink: 0; font-weight: 700; }
   .msg .body { flex: 1; min-width: 0; }
@@ -54,16 +82,30 @@
   .msg[data-speaker="codex"] .name { color: var(--codex); }
   .msg[data-speaker="tine"] .avatar { background: var(--tine); color: #000; }
   .msg[data-speaker="tine"] .name { color: var(--tine); }
+  .msg[data-speaker="system"] .avatar { background: var(--border); color: var(--muted); }
+  .msg[data-speaker="system"] .name { color: var(--muted); }
 
-  /* Consensus message */
   .msg.consensus { border-left: 3px solid var(--consensus); padding-left: 12px; margin: 8px 0; background: rgba(63,185,80,0.05); border-radius: 0 8px 8px 0; }
-  .msg.consensus .badge { display: inline-block; background: var(--consensus); color: #000; font-size: 10px; font-weight: 700; padding: 1px 6px; border-radius: 4px; margin-right: 6px; }
-
-  /* Summary message */
+  .msg.consensus .badge, .msg.summary .badge, .msg.jury-pass .badge, .msg.jury-fail .badge { display: inline-block; font-size: 10px; font-weight: 700; padding: 1px 6px; border-radius: 4px; margin-right: 6px; }
+  .msg.consensus .badge { background: var(--consensus); color: #000; }
   .msg.summary { border-left: 3px solid var(--summary); padding-left: 12px; margin: 8px 0; background: rgba(240,198,116,0.05); border-radius: 0 8px 8px 0; }
-  .msg.summary .badge { display: inline-block; background: var(--summary); color: #000; font-size: 10px; font-weight: 700; padding: 1px 6px; border-radius: 4px; margin-right: 6px; }
+  .msg.summary .badge { background: var(--summary); color: #000; }
+  .msg.jury-pass { border-left: 3px solid var(--pass); padding-left: 12px; background: rgba(63,185,80,0.05); border-radius: 0 8px 8px 0; }
+  .msg.jury-pass .badge { background: var(--pass); color: #000; }
+  .msg.jury-fail { border-left: 3px solid var(--fail); padding-left: 12px; background: rgba(248,81,73,0.05); border-radius: 0 8px 8px 0; }
+  .msg.jury-fail .badge { background: var(--fail); color: #fff; }
 
-  /* Typing indicator */
+  /* Blind mode */
+  .msg.blinded .text { filter: blur(8px); user-select: none; transition: filter 0.3s; }
+  .msg.blinded .name { filter: blur(6px); user-select: none; }
+  .msg.blinded.revealed .text, .msg.blinded.revealed .name { filter: none; user-select: auto; }
+
+  /* 1v1 dimmed */
+  .msg.dimmed { opacity: 0.35; }
+
+  /* Brainstorm */
+  .msg.brainstorm-idea { border-left: 3px solid var(--brainstorm); padding-left: 12px; background: rgba(240,198,116,0.04); border-radius: 0 8px 8px 0; }
+
   .typing-bar { padding: 4px 20px; min-height: 24px; font-size: 12px; color: var(--muted); display: flex; align-items: center; gap: 6px; }
   .typing-dot { display: inline-flex; gap: 3px; }
   .typing-dot span { width: 4px; height: 4px; border-radius: 50%; background: var(--muted); animation: typeBounce 1.2s infinite; }
@@ -71,14 +113,14 @@
   .typing-dot span:nth-child(3) { animation-delay: 0.4s; }
   @keyframes typeBounce { 0%,60%,100% { transform: translateY(0); } 30% { transform: translateY(-4px); } }
 
-  .separator { text-align: center; color: var(--muted); font-size: 12px; padding: 12px 0; }
-
   footer { border-top: 1px solid var(--border); }
   .input-row { display: flex; gap: 8px; padding: 12px 20px; }
   .input-row input { flex: 1; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 10px 14px; color: var(--text); font-size: 14px; outline: none; }
   .input-row input:focus { border-color: var(--accent); }
+  .input-row input:disabled { opacity: 0.5; cursor: not-allowed; }
   .input-row button { background: var(--accent); color: #fff; border: none; border-radius: 8px; padding: 10px 20px; font-size: 14px; font-weight: 600; cursor: pointer; }
   .input-row button:hover { opacity: 0.9; }
+  .input-row button:disabled { opacity: 0.4; cursor: not-allowed; }
   .input-hints { padding: 0 20px 8px; font-size: 11px; color: var(--muted); }
 
   .room-select { display: flex; gap: 8px; padding: 8px 20px; border-bottom: 1px solid var(--border); background: var(--surface); flex-wrap: wrap; }
@@ -93,10 +135,13 @@
 <header>
   <h1>Meeting Room</h1>
   <span class="room-badge" id="room-label">general</span>
+  <span class="mode-badge" id="mode-label" style="display:none"></span>
   <div class="actions">
-    <button class="btn-action" id="btn-round" title="Start structured rounds">Rounds</button>
+    <button class="btn-action btn-reveal" id="btn-reveal" title="Reveal all blind messages">Reveal</button>
+    <button class="btn-action" id="btn-round" title="Cycle rounds">Rounds</button>
+    <button class="btn-action btn-close" id="btn-close" title="Close this meeting">Close</button>
     <button class="btn-action" id="btn-minutes" title="Save meeting minutes">Minutes</button>
-    <div class="status"><div class="dot"></div> Live</div>
+    <div class="status"><div class="dot" id="status-dot"></div> <span id="status-text">Live</span></div>
   </div>
 </header>
 
@@ -109,7 +154,27 @@
   <span class="round-label" id="round-label">Round 1/3 — Independent</span>
 </div>
 
+<div class="jury-tally" id="jury-tally">
+  Votes: <span class="pass-count" id="pass-count">0</span> PASS &nbsp;|&nbsp; <span class="fail-count" id="fail-count">0</span> FAIL
+</div>
+
+<div class="vs-bar" id="vs-bar">
+  <span class="vs-name" id="vs-name1" style="color:var(--accent)">?</span>
+  <span class="vs-badge">VS</span>
+  <span class="vs-name" id="vs-name2" style="color:var(--gemini)">?</span>
+</div>
+
 <div class="room-select" id="room-tabs"></div>
+
+<div class="mode-select" id="mode-select">
+  <span class="label">Mode:</span>
+  <button class="mode-btn active" data-mode="realtime">💬 Real-time</button>
+  <button class="mode-btn" data-mode="rounds">🔄 Rounds</button>
+  <button class="mode-btn" data-mode="blind">🔒 Blind</button>
+  <button class="mode-btn" data-mode="jury">⚖️ Jury</button>
+  <button class="mode-btn" data-mode="1v1">⚔️ 1v1</button>
+  <button class="mode-btn" data-mode="brainstorm">💡 Brainstorm</button>
+</div>
 
 <div id="messages">
   <div class="empty" id="empty-state">waiting for messages...</div>
@@ -122,7 +187,7 @@
     <input type="text" id="input" placeholder="พิมพ์ข้อความ (ส่งในนาม TINE)..." autocomplete="off">
     <button id="send">Send</button>
   </div>
-  <div class="input-hints">@ชื่อ = mention &nbsp;|&nbsp; [consensus] = mark consensus &nbsp;|&nbsp; [summary] = chairman summary</div>
+  <div class="input-hints" id="input-hints">@ชื่อ = mention &nbsp;|&nbsp; [consensus] = consensus &nbsp;|&nbsp; [summary] = chairman summary</div>
 </footer>
 
 <script>
@@ -132,19 +197,50 @@ const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZ
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 const messagesEl = document.getElementById('messages');
 const inputEl = document.getElementById('input');
+const sendBtn = document.getElementById('send');
 const roomLabel = document.getElementById('room-label');
 const roomTabs = document.getElementById('room-tabs');
 const typingBar = document.getElementById('typing-bar');
 const roundBar = document.getElementById('round-bar');
+const juryTally = document.getElementById('jury-tally');
+const vsBar = document.getElementById('vs-bar');
+const modeLabelEl = document.getElementById('mode-label');
+const hintsEl = document.getElementById('input-hints');
 
-let currentRoom = new URLSearchParams(location.search).get('room') || 'general';
+const params = new URLSearchParams(location.search);
+let currentRoom = params.get('room') || 'general';
+let currentMode = params.get('mode') || 'realtime';
 let rooms = new Set(['general']);
 let currentRound = 0;
 let typingTimers = {};
+let isClosed = false;
+let isRevealed = false;
+let juryPass = 0, juryFail = 0;
+let vsDebaters = [];
+let brainstormRound = 0;
 
-const AVATARS = { croo: 'C', gemini: 'G', codex: 'X', tine: 'T' };
-const NAMES = { croo: 'CROO', gemini: 'Gemini', codex: 'Codex', tine: 'TINE' };
+const AVATARS = { croo: 'C', gemini: 'G', codex: 'X', tine: 'T', system: '⚙' };
+const NAMES = { croo: 'CROO', gemini: 'Gemini', codex: 'Codex', tine: 'TINE', system: 'System' };
 const ROUND_LABELS = ['', 'Round 1/3 — Independent', 'Round 2/3 — Debate', 'Round 3/3 — Synthesis'];
+const BRAINSTORM_LABELS = ['', '💡 Round 1/2 — Ideas Only (no criticism)', '🔍 Round 2/2 — Filter & Rank'];
+
+const MODE_HINTS = {
+  realtime: '@ชื่อ = mention &nbsp;|&nbsp; [consensus] = consensus &nbsp;|&nbsp; [summary] = chairman summary',
+  rounds: '@ชื่อ = mention &nbsp;|&nbsp; กด Rounds เพื่อเปลี่ยน round',
+  blind: 'ข้อความจะซ่อนจนกว่าจะกด Reveal &nbsp;|&nbsp; [consensus] / [summary] ใช้ได้',
+  jury: '[PASS] หรือ [FAIL] นำหน้า = โหวต &nbsp;|&nbsp; ข้อความแรกคือ presentation',
+  '1v1': 'เลือก 2 ผู้โต้แย้ง ข้อความคนอื่นจะจาง &nbsp;|&nbsp; พิมพ์ /vs name1 name2 เพื่อตั้ง',
+  brainstorm: 'กด Rounds → 💡 Ideas Only (ห้ามค้าน) → 🔍 Filter & Rank'
+};
+
+const MODE_COLORS = {
+  realtime: 'var(--accent)', rounds: 'var(--accent)', blind: 'var(--warn)',
+  jury: 'var(--fail)', '1v1': 'var(--codex)', brainstorm: 'var(--brainstorm)'
+};
+
+const MODE_ICONS = {
+  realtime: '💬', rounds: '🔄', blind: '🔒', jury: '⚖️', '1v1': '⚔️', brainstorm: '💡'
+};
 
 function formatTime(ts) {
   const d = new Date(ts);
@@ -152,9 +248,9 @@ function formatTime(ts) {
 }
 
 function highlightMentions(text) {
-  return text.replace(/@(croo|gemini|codex|tine)/gi, (m, name) => {
+  return text.replace(/@(croo|gemini|codex|tine|wb-il|stl)/gi, (m, name) => {
     const sp = name.toLowerCase();
-    const color = `var(--${sp})`;
+    const color = `var(--${sp === 'wb-il' || sp === 'stl' ? 'accent' : sp})`;
     return `<span class="mention" style="color:${color}">@${NAMES[sp] || name}</span>`;
   });
 }
@@ -163,32 +259,52 @@ function detectMessageType(msg) {
   const t = msg.message.toLowerCase();
   if (t.startsWith('[consensus]')) return 'consensus';
   if (t.startsWith('[summary]')) return 'summary';
+  if (t.startsWith('[pass]')) return 'jury-pass';
+  if (t.startsWith('[fail]')) return 'jury-fail';
   return 'normal';
 }
 
 function addMessage(msg) {
-  if (msg.room !== currentRoom) {
-    rooms.add(msg.room);
-    renderTabs();
-    return;
-  }
+  if (msg.room !== currentRoom) { rooms.add(msg.room); renderTabs(); return; }
   document.getElementById('empty-state')?.remove();
+
+  // Check for close
+  if (msg.speaker === 'system' && msg.message.includes('Meeting Closed')) {
+    isClosed = true;
+    lockInput();
+  }
 
   const type = detectMessageType(msg);
   const el = document.createElement('div');
-  el.className = 'msg' + (type !== 'normal' ? ' ' + type : '');
+  let classes = 'msg';
+  if (type !== 'normal') classes += ' ' + type;
+  if (currentMode === 'blind' && !isRevealed && msg.speaker !== 'system') classes += ' blinded';
+  if (currentMode === '1v1' && vsDebaters.length === 2 && !vsDebaters.includes(msg.speaker.toLowerCase()) && msg.speaker !== 'system') classes += ' dimmed';
+  if (currentMode === 'brainstorm' && brainstormRound === 1 && type === 'normal' && msg.speaker !== 'system') classes += ' brainstorm-idea';
+  el.className = classes;
   el.dataset.speaker = msg.speaker;
   const sp = msg.speaker.toLowerCase();
 
   let displayMsg = msg.message;
   if (type === 'consensus') displayMsg = displayMsg.replace(/^\[consensus\]\s*/i, '');
   if (type === 'summary') displayMsg = displayMsg.replace(/^\[summary\]\s*/i, '');
+  if (type === 'jury-pass') displayMsg = displayMsg.replace(/^\[pass\]\s*/i, '');
+  if (type === 'jury-fail') displayMsg = displayMsg.replace(/^\[fail\]\s*/i, '');
 
-  const badgeHtml = type === 'consensus' ? '<span class="badge">CONSENSUS</span>'
-    : type === 'summary' ? '<span class="badge">SUMMARY</span>' : '';
+  const badges = {
+    'consensus': '<span class="badge">CONSENSUS</span>',
+    'summary': '<span class="badge">SUMMARY</span>',
+    'jury-pass': '<span class="badge">PASS</span>',
+    'jury-fail': '<span class="badge">FAIL</span>'
+  };
+  const badgeHtml = badges[type] || '';
+
+  if (type === 'jury-pass') juryPass++;
+  if (type === 'jury-fail') juryFail++;
+  if (currentMode === 'jury') updateJuryTally();
 
   el.innerHTML = `
-    <div class="avatar">${AVATARS[sp] || sp[0].toUpperCase()}</div>
+    <div class="avatar">${AVATARS[sp] || (sp[0] || '?').toUpperCase()}</div>
     <div class="body">
       <div class="meta">
         <span class="name">${NAMES[sp] || msg.speaker}</span>
@@ -199,8 +315,6 @@ function addMessage(msg) {
   `;
   messagesEl.appendChild(el);
   messagesEl.scrollTop = messagesEl.scrollHeight;
-
-  // Clear typing indicator for this speaker
   clearTyping(sp);
 }
 
@@ -210,21 +324,16 @@ function escapeHtml(str) {
   return div.innerHTML;
 }
 
-// --- Typing indicator ---
+// --- Typing ---
 function showTyping(speaker) {
   typingTimers[speaker] = Date.now();
   renderTyping();
-  setTimeout(() => { if (Date.now() - typingTimers[speaker] >= 9500) { clearTyping(speaker); } }, 10000);
+  setTimeout(() => { if (Date.now() - typingTimers[speaker] >= 9500) clearTyping(speaker); }, 10000);
 }
-
-function clearTyping(speaker) {
-  delete typingTimers[speaker];
-  renderTyping();
-}
-
+function clearTyping(speaker) { delete typingTimers[speaker]; renderTyping(); }
 function renderTyping() {
   const active = Object.keys(typingTimers);
-  if (active.length === 0) { typingBar.innerHTML = ''; return; }
+  if (!active.length) { typingBar.innerHTML = ''; return; }
   const names = active.map(s => NAMES[s] || s).join(', ');
   typingBar.innerHTML = `<div class="typing-dot"><span></span><span></span><span></span></div> ${names} กำลังพิมพ์...`;
 }
@@ -234,25 +343,115 @@ function setRound(n) {
   currentRound = n;
   if (n === 0) { roundBar.classList.remove('active'); return; }
   roundBar.classList.add('active');
+  const labels = currentMode === 'brainstorm' ? BRAINSTORM_LABELS : ROUND_LABELS;
+  const maxSteps = currentMode === 'brainstorm' ? 2 : 3;
   for (let i = 1; i <= 3; i++) {
     const step = document.getElementById('rs' + i);
-    step.className = 'round-step' + (i < n ? ' done' : i === n ? ' current' : '');
+    if (i > maxSteps) { step.style.display = 'none'; continue; }
+    step.style.display = '';
+    let cls = 'round-step';
+    if (i < n) cls += ' done';
+    else if (i === n) cls += (currentMode === 'brainstorm' ? ' brainstorm-current' : ' current');
+    step.className = cls;
   }
-  document.getElementById('round-label').textContent = ROUND_LABELS[n] || '';
+  document.getElementById('round-label').textContent = labels[n] || '';
+  if (currentMode === 'brainstorm') brainstormRound = n;
 }
 
 function cycleRound() {
-  const next = (currentRound + 1) % 4;
+  if (isClosed) return;
+  const max = currentMode === 'brainstorm' ? 3 : 4;
+  const next = (currentRound + 1) % max;
   setRound(next);
   if (next > 0) {
+    const labels = currentMode === 'brainstorm' ? BRAINSTORM_LABELS : ROUND_LABELS;
     sb.from('meeting_messages').insert({
-      room: currentRoom, speaker: 'system',
-      message: `--- ${ROUND_LABELS[next]} ---`
+      room: currentRoom, speaker: 'system', message: `--- ${labels[next]} ---`
     });
   }
 }
 
-// --- Room management ---
+// --- Mode ---
+function setMode(mode) {
+  currentMode = mode;
+  document.querySelectorAll('.mode-btn').forEach(b => b.classList.toggle('active', b.dataset.mode === mode));
+
+  const color = MODE_COLORS[mode] || 'var(--accent)';
+  modeLabelEl.style.display = 'inline';
+  modeLabelEl.style.background = color;
+  modeLabelEl.style.color = '#000';
+  modeLabelEl.textContent = `${MODE_ICONS[mode] || ''} ${mode}`;
+
+  hintsEl.innerHTML = MODE_HINTS[mode] || '';
+
+  document.getElementById('btn-reveal').style.display = mode === 'blind' ? '' : 'none';
+  juryTally.classList.toggle('active', mode === 'jury');
+  vsBar.classList.toggle('active', mode === '1v1');
+
+  if (mode !== 'rounds' && mode !== 'brainstorm') setRound(0);
+
+  const u = new URL(location.href);
+  u.searchParams.set('mode', mode);
+  history.replaceState(null, '', u);
+
+  reloadCurrentMessages();
+}
+
+function reloadCurrentMessages() {
+  juryPass = 0; juryFail = 0;
+  loadMessages();
+}
+
+// --- Jury ---
+function updateJuryTally() {
+  document.getElementById('pass-count').textContent = juryPass;
+  document.getElementById('fail-count').textContent = juryFail;
+}
+
+// --- 1v1 ---
+function setVsDebaters(a, b) {
+  vsDebaters = [a.toLowerCase(), b.toLowerCase()];
+  document.getElementById('vs-name1').textContent = NAMES[vsDebaters[0]] || vsDebaters[0];
+  document.getElementById('vs-name2').textContent = NAMES[vsDebaters[1]] || vsDebaters[1];
+}
+
+// --- Blind reveal ---
+function revealAll() {
+  isRevealed = true;
+  document.querySelectorAll('.msg.blinded').forEach(el => el.classList.add('revealed'));
+  document.getElementById('btn-reveal').textContent = 'Revealed';
+}
+
+// --- Close ---
+async function closeMeeting() {
+  if (isClosed) return;
+  if (!confirm('จบการประชุมห้อง ' + currentRoom + '?')) return;
+
+  const { data } = await sb.from('meeting_messages').select('*').eq('room', currentRoom).order('created_at');
+  const count = data ? data.length : 0;
+  const speakers = data ? [...new Set(data.map(m => m.speaker))].filter(s => s !== 'system') : [];
+  const first = data && data[0] ? new Date(data[0].created_at) : new Date();
+  const dur = Math.round((Date.now() - first.getTime()) / 60000);
+
+  await sb.from('meeting_messages').insert({
+    room: currentRoom, speaker: 'system',
+    message: `--- Meeting Closed --- [${count} messages, ${speakers.length} participants, ${dur} min]`
+  });
+
+  isClosed = true;
+  lockInput();
+  saveMinutes();
+}
+
+function lockInput() {
+  inputEl.disabled = true;
+  inputEl.placeholder = 'Meeting closed';
+  sendBtn.disabled = true;
+  document.getElementById('status-dot').classList.add('closed');
+  document.getElementById('status-text').textContent = 'Closed';
+}
+
+// --- Rooms ---
 function renderTabs() {
   roomTabs.innerHTML = '';
   for (const r of rooms) {
@@ -270,37 +469,58 @@ async function switchRoom(room) {
   messagesEl.innerHTML = '<div class="empty" id="empty-state">loading...</div>';
   renderTabs();
   setRound(0);
+  isClosed = false; isRevealed = false; juryPass = 0; juryFail = 0;
+  inputEl.disabled = false;
+  inputEl.placeholder = 'พิมพ์ข้อความ (ส่งในนาม TINE)...';
+  sendBtn.disabled = false;
+  document.getElementById('status-dot').classList.remove('closed');
+  document.getElementById('status-text').textContent = 'Live';
   await loadMessages();
-  history.replaceState(null, '', '?room=' + room);
+  const u = new URL(location.href);
+  u.searchParams.set('room', room);
+  history.replaceState(null, '', u);
 }
 
 async function loadMessages() {
-  const { data } = await sb.from('meeting_messages')
-    .select('*').eq('room', currentRoom)
+  const { data } = await sb.from('meeting_messages').select('*').eq('room', currentRoom)
     .order('created_at', { ascending: true }).limit(200);
-
   messagesEl.innerHTML = '';
-  if (!data || data.length === 0) {
+  juryPass = 0; juryFail = 0;
+  if (!data || !data.length) {
     messagesEl.innerHTML = '<div class="empty">waiting for messages...</div>';
     return;
   }
   data.forEach(addMessage);
+  if (currentMode === 'jury') updateJuryTally();
 }
 
 async function loadRooms() {
-  const { data } = await sb.from('meeting_messages')
-    .select('room').order('created_at', { ascending: false });
+  const { data } = await sb.from('meeting_messages').select('room').order('created_at', { ascending: false });
   if (data) data.forEach(r => rooms.add(r.room));
   renderTabs();
 }
 
 async function sendMessage() {
-  const text = inputEl.value.trim();
+  if (isClosed) return;
+  let text = inputEl.value.trim();
   if (!text) return;
+
+  // /vs command for 1v1
+  if (text.startsWith('/vs ')) {
+    const parts = text.replace('/vs ', '').trim().split(/\s+/);
+    if (parts.length >= 2) {
+      setVsDebaters(parts[0], parts[1]);
+      sb.from('meeting_messages').insert({
+        room: currentRoom, speaker: 'system',
+        message: `--- 1v1 Mode: ${NAMES[parts[0].toLowerCase()] || parts[0]} VS ${NAMES[parts[1].toLowerCase()] || parts[1]} ---`
+      });
+    }
+    inputEl.value = '';
+    return;
+  }
+
   inputEl.value = '';
-  await sb.from('meeting_messages').insert({
-    room: currentRoom, speaker: 'tine', message: text
-  });
+  await sb.from('meeting_messages').insert({ room: currentRoom, speaker: 'tine', message: text });
 }
 
 // --- Realtime ---
@@ -312,41 +532,39 @@ sb.channel('meeting-realtime')
   })
   .subscribe();
 
-// --- Minutes export ---
+// --- Minutes ---
 async function saveMinutes() {
-  const { data } = await sb.from('meeting_messages')
-    .select('*').eq('room', currentRoom)
+  const { data } = await sb.from('meeting_messages').select('*').eq('room', currentRoom)
     .order('created_at', { ascending: true });
-
-  if (!data || data.length === 0) { alert('No messages to save'); return; }
+  if (!data || !data.length) { alert('No messages to save'); return; }
 
   const speakers = [...new Set(data.map(m => m.speaker))];
   const first = new Date(data[0].created_at);
   const last = new Date(data[data.length - 1].created_at);
   const dur = Math.round((last - first) / 60000);
-
   const consensusItems = data.filter(m => m.message.toLowerCase().startsWith('[consensus]'));
   const summaryItems = data.filter(m => m.message.toLowerCase().startsWith('[summary]'));
+  const passItems = data.filter(m => m.message.toLowerCase().startsWith('[pass]'));
+  const failItems = data.filter(m => m.message.toLowerCase().startsWith('[fail]'));
 
   let md = `# Meeting Minutes — ${currentRoom}\n\n`;
   md += `**Date:** ${first.toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' })}\n`;
   md += `**Time:** ${first.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })} — ${last.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })} (${dur} min)\n`;
+  md += `**Mode:** ${currentMode}\n`;
   md += `**Participants:** ${speakers.map(s => (NAMES[s] || s)).join(', ')}\n`;
   md += `**Messages:** ${data.length}\n\n`;
 
-  if (consensusItems.length > 0) {
+  if (consensusItems.length) {
     md += `## Consensus Points\n\n`;
-    consensusItems.forEach(m => {
-      md += `- ${m.message.replace(/^\[consensus\]\s*/i, '')} *(${NAMES[m.speaker] || m.speaker})*\n`;
-    });
-    md += `\n`;
+    consensusItems.forEach(m => { md += `- ${m.message.replace(/^\[consensus\]\s*/i, '')} *(${NAMES[m.speaker] || m.speaker})*\n`; });
+    md += '\n';
   }
-
-  if (summaryItems.length > 0) {
+  if (summaryItems.length) {
     md += `## Chairman Summary\n\n`;
-    summaryItems.forEach(m => {
-      md += `${m.message.replace(/^\[summary\]\s*/i, '')}\n\n— *${NAMES[m.speaker] || m.speaker}*\n\n`;
-    });
+    summaryItems.forEach(m => { md += `${m.message.replace(/^\[summary\]\s*/i, '')}\n\n— *${NAMES[m.speaker] || m.speaker}*\n\n`; });
+  }
+  if (passItems.length || failItems.length) {
+    md += `## Jury Votes\n\n- PASS: ${passItems.length}\n- FAIL: ${failItems.length}\n\n`;
   }
 
   md += `---\n\n## Full Transcript\n\n`;
@@ -354,7 +572,6 @@ async function saveMinutes() {
     const t = new Date(m.created_at).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
     md += `**${NAMES[m.speaker] || m.speaker}** (${t}):\n${m.message}\n\n`;
   });
-
   md += `---\n*Generated from Meeting Room — ${new Date().toISOString()}*\n`;
 
   const blob = new Blob([md], { type: 'text/markdown' });
@@ -369,11 +586,24 @@ async function saveMinutes() {
 // --- Events ---
 document.getElementById('btn-minutes').onclick = saveMinutes;
 document.getElementById('btn-round').onclick = cycleRound;
+document.getElementById('btn-close').onclick = closeMeeting;
+document.getElementById('btn-reveal').onclick = revealAll;
 document.getElementById('send').onclick = sendMessage;
 inputEl.addEventListener('keydown', e => { if (e.key === 'Enter') sendMessage(); });
 
+document.querySelectorAll('.mode-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const mode = btn.dataset.mode;
+    setMode(mode);
+    sb.from('meeting_messages').insert({
+      room: currentRoom, speaker: 'system', message: `--- Mode: ${MODE_ICONS[mode]} ${mode} ---`
+    });
+  });
+});
+
 // --- Init ---
 roomLabel.textContent = currentRoom;
+setMode(currentMode);
 loadRooms();
 loadMessages();
 </script>
