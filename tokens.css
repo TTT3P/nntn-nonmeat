@@ -1,0 +1,164 @@
+/* ==========================================================================
+   NNTN Design Tokens — Curated from Spike v5 "40 Years of Tradition"
+   Heritage green primary + gold accent. Warm paper neutrals.
+
+   Port scope: semantic tokens only. No layout/shell/theme/reset.
+   Coexists with nntn-theme.css during migration.
+   ========================================================================== */
+
+:root {
+  /* ---------- Brand palette -----------------------------------------------
+     Primary = deep forest green (heritage, premium).
+     Source: spike-v5/tokens.css lines 12-25 */
+  --color-primary-50:  #EAF2EC;
+  --color-primary-100: #CFE0D2;
+  --color-primary-200: #A5C3AB;
+  --color-primary-300: #75A07D;
+  --color-primary-400: #4A7E54;
+  --color-primary-500: #2F6138;
+  --color-primary-600: #1F4E2A;
+  --color-primary-700: #173D20;
+  --color-primary-800: #0F2E17;
+  --color-primary-900: #08200E;
+
+  /* ---------- Accent (gold/orange diamond ornament) ---------------------- */
+  --color-accent-50:   #FBF3DC;
+  --color-accent-100:  #F5E0A4;
+  --color-accent-300:  #E8C265;
+  --color-accent-500:  #C9962C;
+  --color-accent-600:  #A87A1B;
+  --color-accent-700:  #7E5A11;
+
+  /* ---------- Neutrals (warm paper ink) --------------------------------- */
+  --color-ink-900:  #141A13;
+  --color-ink-800:  #1E2520;
+  --color-ink-700:  #3A4239;
+  --color-ink-600:  #5F6860;
+  --color-ink-500:  #838B84;
+  --color-ink-400:  #ABB2AC;
+  --color-ink-300:  #D2D5D0;
+  --color-ink-200:  #E6E8E3;
+  --color-ink-100:  #F0F1EC;
+  --color-ink-50:   #F8F7F1;
+
+  /* ---------- Semantic --------------------------------------------------- */
+  --color-success-50:  #E8F2EA;
+  --color-success-100: #C7DFCD;
+  --color-success-500: #2F7A3F;
+  --color-success-600: #1F6330;
+  --color-success-700: #134A22;
+
+  --color-warning-50:  #FBF3DC;
+  --color-warning-100: #F5E0A4;
+  --color-warning-500: #C9962C;
+  --color-warning-600: #A87A1B;
+  --color-warning-700: #7E5A11;
+
+  --color-danger-50:   #FADFD7;
+  --color-danger-100:  #F0B7A8;
+  --color-danger-500:  #B03224;
+  --color-danger-600:  #8F1A0B;
+  --color-danger-700:  #6E1307;
+
+  --color-info-50:   #E5EEE9;
+  --color-info-500:  #2F5E4A;
+
+  /* ---------- Surfaces --------------------------------------------------- */
+  --color-bg-app:     var(--color-ink-50);
+  --color-bg-surface: #FFFFFF;
+  --color-bg-raised:  #FFFFFF;
+  --color-bg-sunken:  var(--color-ink-100);
+  --color-bg-inverse: var(--color-ink-900);
+
+  /* Stat card gradients */
+  --grad-stat-orange: linear-gradient(180deg, #FBEFCC 0%, #F5DE94 100%);
+  --grad-stat-green:  linear-gradient(180deg, #DCEADE 0%, #B7D2BC 100%);
+  --grad-stat-red:    linear-gradient(180deg, #FADFD7 0%, #F0B7A8 100%);
+  --grad-stat-amber:  linear-gradient(180deg, #FBECC7 0%, #F5D57F 100%);
+
+  /* ---------- Borders ---------------------------------------------------- */
+  --border-subtle:  1px solid var(--color-ink-200);
+  --border-default: 1px solid var(--color-ink-300);
+  --border-strong:  1px solid var(--color-ink-400);
+  --border-focus:   2px solid var(--color-primary-600);
+
+  /* ---------- Radius ----------------------------------------------------- */
+  --radius-xs:  4px;
+  --radius-sm:  6px;
+  --radius-md:  10px;
+  --radius-lg:  14px;
+  --radius-xl:  18px;
+  --radius-2xl: 24px;
+  --radius-pill: 999px;
+
+  /* ---------- Spacing scale (4pt) ---------------------------------------- */
+  --space-0: 0;
+  --space-1: 4px;   --space-2: 8px;   --space-3: 12px;  --space-4: 16px;
+  --space-5: 20px;  --space-6: 24px;  --space-7: 32px;  --space-8: 40px;
+  --space-9: 48px;  --space-10: 64px; --space-11: 80px; --space-12: 96px;
+
+  /* ---------- Typography -------------------------------------------------
+     Sarabun remains primary body font during migration.
+     Noto Sans Thai = upgrade path (cleaner at small sizes). */
+  --font-sans: "Sarabun", "Noto Sans Thai", -apple-system, BlinkMacSystemFont,
+               "Segoe UI", Roboto, sans-serif;
+  --font-display: "Trirong", Georgia, serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  --fs-h1:      clamp(24px, 4vw, 36px);  --lh-h1:      1.22;  --fw-h1:      800;
+  --fs-h2:      clamp(20px, 3vw, 26px);  --lh-h2:      1.28;  --fw-h2:      700;
+  --fs-h3:      clamp(18px, 2.5vw, 20px); --lh-h3:     1.35;  --fw-h3:      700;
+  --fs-h4:      18px;  --lh-h4:      1.4;   --fw-h4:      600;
+  --fs-body-lg: 16px;  --lh-body-lg: 1.55;  --fw-body:    400;
+  --fs-body:    15px;  --lh-body:    1.55;
+  --fs-body-sm: 14px;  --lh-body-sm: 1.5;
+  --fs-caption: 13px;  --lh-caption: 1.45;
+  --fs-micro:   12px;  --lh-micro:   1.4;
+  --fw-semibold: 600;
+  --fw-bold: 700;
+
+  --fs-stat:    clamp(28px, 5vw, 40px);  --lh-stat:    1.05;  --fw-stat:    800;
+  --fs-stat-sm: clamp(22px, 3.5vw, 28px); --lh-stat-sm: 1.1;  --fw-stat-sm: 700;
+
+  /* ---------- Shadows (green-ink tinted) --------------------------------- */
+  --shadow-xs: 0 1px 2px rgba(20, 26, 19, 0.05);
+  --shadow-sm: 0 1px 3px rgba(20, 26, 19, 0.07), 0 1px 2px rgba(20, 26, 19, 0.05);
+  --shadow-md: 0 4px 12px rgba(20, 26, 19, 0.08), 0 2px 4px rgba(20, 26, 19, 0.05);
+  --shadow-lg: 0 12px 24px rgba(20, 26, 19, 0.10), 0 4px 8px rgba(20, 26, 19, 0.05);
+  --shadow-xl: 0 24px 48px rgba(20, 26, 19, 0.14), 0 8px 16px rgba(20, 26, 19, 0.07);
+  --shadow-focus: 0 0 0 3px rgba(47, 97, 56, 0.28);
+  --shadow-primary: 0 8px 20px rgba(31, 78, 42, 0.28);
+
+  /* ---------- Motion ----------------------------------------------------- */
+  --ease-out:    cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --dur-fast: 120ms;
+  --dur-base: 200ms;
+  --dur-slow: 320ms;
+
+  /* ---------- Z-index (no shell-specific values) ------------------------- */
+  --z-base: 0;
+  --z-sticky: 100;
+  --z-dropdown: 500;
+  --z-modal-bg: 900;
+  --z-modal: 1000;
+  --z-toast: 1100;
+
+  /* ---------- Category accents ------------------------------------------- */
+  --cat-noodle: #C9962C;
+  --cat-meat:   #8F1A0B;
+  --cat-veg:    #2F6138;
+  --cat-sauce:  #5B3B82;
+  --cat-other:  #5F6860;
+}
+
+/* ==========================================================================
+   EXCLUDED from this port (see spike-v5/tokens.css for originals):
+   - Layout tokens (--layout-sidebar-w, --layout-topbar-h, etc.) — desktop-specific
+   - --grad-sidebar — shell-dependent
+   - Theme variants (warm/blue/sakura/dark) — deferred
+   - Base reset (*, body, a, img) — separate concern
+   - .heritage-title, .tabular utilities — deferred
+   - @import font loading — add per-page as needed
+   ========================================================================== */
